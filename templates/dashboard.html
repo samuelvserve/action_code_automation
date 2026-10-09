@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Action Code Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="overview-header"><div><h2>Action Code overview</h2><p>Monitor processing activity and open your run files.</p></div><a class="btn btn-primary btn-icon" href="{{ url_for('run_page') }}">{{ icon('play', 14) }} New run</a></div>
+<form method="get" action="{{ url_for('dashboard') }}" class="filter-bar overview-filters">
+  <input type="hidden" name="process" value="acr">
+  <div class="field"><label for="period">Date range</label><select id="period" name="period">{% for days in (7,14,30) %}<option value="{{ days }}" {{ 'selected' if f_period == days else '' }}>Last {{ days }} days</option>{% endfor %}<option value="0" {{ 'selected' if f_period == 0 else '' }}>All time</option></select></div>
+  <div class="field"><label for="code">Purchasing code</label><select id="code" name="code"><option value="">All codes</option>{% for code in all_codes %}<option value="{{ code }}" {{ 'selected' if f_code == code else '' }}>{{ code }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="status">Run status</label><select id="status" name="status"><option value="">All statuses</option>{% for status in statuses %}<option value="{{ status }}" {{ 'selected' if f_status == status else '' }}>{{ status|capitalize }}</option>{% endfor %}</select></div>
+  <button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-secondary" href="{{ url_for('dashboard', process='acr') }}">Reset</a>
+</form>
+{% if allowed_codes is not none %}<p class="text-muted">Your purchasing codes: {{ allowed_codes|join(', ') }}</p>{% endif %}
+{% set running_runs = runs|selectattr('status','equalto','running')|list %}{% include "_live_status.html" %}
+<div class="metrics-grid">
+  <div class="metric"><span class="metric-label">Total runs</span><strong class="metric-value">{{ runs|length }}</strong><span class="metric-note">{{ n_running }} running now</span></div>
+  <div class="metric"><span class="metric-label">Success rate</span><strong class="metric-value">{{ success_rate }}<small>%</small></strong><span class="metric-note">{{ n_success }} completed successfully</span></div>
+  <div class="metric"><span class="metric-label">Rows processed</span><strong class="metric-value">{{ "{:,}".format(total_rows) }}</strong><span class="metric-note">Successful runs in this range</span></div>
+  <div class="metric"><span class="metric-label">Action items</span><strong class="metric-value">{{ "{:,}".format(total_action) }}</strong><span class="metric-note">Flagged for follow-up</span></div>
+</div>
+{% include "_dashboard_charts.html" %}
+<div class="card run-files-card">
+  <div class="section-header"><div><h2>Run files</h2><p class="text-muted">Open a file to view its run details.</p></div><a class="btn btn-secondary btn-sm" href="{{ url_for('history') }}">View all runs</a></div>
+  {% if recent %}<div class="table-wrap"><table class="data run-files-table"><thead><tr><th scope="col">File / run</th><th scope="col">Status</th><th scope="col" class="numeric">Rows</th><th scope="col" class="numeric">Actions</th><th scope="col">Started</th><th scope="col">Open</th></tr></thead><tbody>
+  {% for r in recent %}<tr><td class="source-cell"><a class="file-detail-link" href="{{ url_for('run_detail',run_id=r['id']) }}">{{ icon('file-text',17) }} <span>{{ r['output_file'] or ('Run #' ~ r['id']) }}</span></a><span class="me2m-meta">Run #{{ r['id'] }} &nbsp; {{ r['purchasing_codes'] }}</span></td><td><span class="badge {{ r['status'] }}">{{ r['status'] }}</span></td><td class="numeric">{{ "{:,}".format(r['total_rows']) if r['total_rows'] is not none else '—' }}</td><td class="numeric">{{ "{:,}".format(r['action_items']) if r['action_items'] is not none else '—' }}</td><td class="run-date">{{ r['started_at'] }}</td><td><div class="actions-row"><a href="{{ url_for('run_detail',run_id=r['id']) }}" aria-label="View run {{ r['id'] }} details">Details</a>{% if r['status']=='success' and r['output_file'] %}<a class="btn btn-secondary btn-sm" href="{{ url_for('download',filename=r['output_file']) }}" aria-label="Download run {{ r['id'] }}">{{ icon('download',14) }} XLSX</a>{% endif %}</div></td></tr>{% endfor %}
+  </tbody></table></div>{% else %}<div class="empty-state"><p>No runs match these filters. <a href="{{ url_for('run_page') }}">Start a new run</a>.</p></div>{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}{% include "_dashboard_scripts.html" %}{% endblock %}

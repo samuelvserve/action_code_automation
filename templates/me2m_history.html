@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Run files · ME2M{% endblock %}
+{% block page_title %}Run files{% endblock %}
+{% block content %}
+<div class="overview-header"><div><h2>ME2M report files</h2><p>Open a report to see its Period and purchasing-group breakdowns.</p></div><a class="btn btn-primary" href="{{ url_for('me2m_page') }}">New run</a></div>
+<form method="get" class="filter-bar"><div class="field"><label for="q">Find a file</label><input id="q" name="q" type="text" value="{{ f_query }}" placeholder="Workbook or output name"></div><div class="field"><label for="status">Run status</label><select id="status" name="status"><option value="">All statuses</option>{% for status in statuses %}<option value="{{ status }}" {{ 'selected' if f_status==status else '' }}>{{ status|capitalize }}</option>{% endfor %}</select></div><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-secondary" href="{{ url_for('me2m_history') }}">Reset</a></form>
+<div class="card run-files-card"><h2>Run files <span class="chart-range">{{ recent|length }} shown</span></h2>{% include "_me2m_history.html" %}</div>
+{% endblock %}

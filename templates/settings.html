@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Settings · Action Code Dashboard{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% macro code_picker(purchasing_codes, checked_codes=[]) %}
+<div class="code-picker">
+  {% for code in purchasing_codes %}
+  <label class="code-chip">
+    <input type="checkbox" name="allowed_codes" value="{{ code }}" {{ 'checked' if code in checked_codes else '' }}>
+    {{ code }}
+  </label>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% block content %}
+<div class="grid-2">
+  <div class="card">
+    <h2>Mail notification <span class="sub">SMTP</span></h2>
+    <div class="settings-note">
+      Sent after each run (success and/or failure) to the recipients below.
+      Uses standard SMTP — e.g. Office 365, Gmail app password, or an internal relay.
+    </div>
+    <form method="post" action="{{ url_for('settings') }}">
+      <div class="form-grid mb-4">
+        <div class="field">
+          <label>Enable notifications</label>
+          <label class="check"><input type="checkbox" name="enabled" {{ 'checked' if mail_cfg['enabled'] else '' }}> Send emails on run completion</label>
+        </div>
+        <div class="field">
+          <label>Notify on</label>
+          <select name="notify_on">
+            <option value="failure" {{ 'selected' if mail_cfg['notify_on'] == 'failure' else '' }}>Failure only</option>
+            <option value="success" {{ 'selected' if mail_cfg['notify_on'] == 'success' else '' }}>Success only</option>
+            <option value="both" {{ 'selected' if mail_cfg['notify_on'] == 'both' else '' }}>Success &amp; failure</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="host">SMTP host</label>
+          <input type="text" id="host" name="host" value="{{ mail_cfg['host'] }}" placeholder="smtp.office365.com">
+        </div>
+        <div class="field">
+          <label for="port">Port</label>
+          <input type="number" id="port" name="port" value="{{ mail_cfg['port'] }}">
+        </div>
+        <div class="field">
+          <label>Use TLS (STARTTLS)</label>
+          <label class="check"><input type="checkbox" name="use_tls" {{ 'checked' if mail_cfg['use_tls'] else '' }}> Enable</label>
+        </div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" value="{{ mail_cfg['username'] }}" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="password">Password / app password</label>
+          <input type="password" id="password" name="password" value="{{ mail_cfg['password'] }}" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="from_addr">From address</label>
+          <input type="text" id="from_addr" name="from_addr" value="{{ mail_cfg['from_addr'] }}" placeholder="acr-automation@lawson.com">
+        </div>
+        <div class="field grid-full">
+          <label for="to_list">Recipients (comma separated)</label>
+          <input type="text" id="to_list" name="to_list" value="{{ mail_cfg['to_list'] }}" placeholder="buyer1@lawson.com, manager@lawson.com">
+          <span class="hint">Run summaries go to everyone listed.</span>
+        </div>
+        <div class="field">
+          <label for="subject_prefix">Subject prefix</label>
+          <input type="text" id="subject_prefix" name="subject_prefix" value="{{ mail_cfg['subject_prefix'] }}">
+        </div>
+      </div>
+      <div class="actions-row">
+        <button class="btn btn-primary" type="submit" name="action" value="save_mail">Save settings</button>
+        <button class="btn btn-secondary" type="submit" name="action" value="test_mail"
+                {{ 'disabled' if not mail_cfg['enabled'] else '' }}>Send test email</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Users <span class="sub">dashboard access</span></h2>
+
+    <div class="actions-row mb-4">
+      <button class="btn btn-primary btn-icon" type="button" data-modal-open="modal-add-user">
+        {{ icon('user-plus', 14) }} Add user
+      </button>
+      <a class="btn btn-secondary btn-icon" href="{{ url_for('change_password') }}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Change my password
+      </a>
+    </div>
+
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Username</th><th>Name</th><th>Role</th><th>Purchasing codes</th><th>Created</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          {% set u_codes = (u['allowed_codes'] or '').split(',') | select | list %}
+          <tr>
+            <td class="mono">{{ u['username'] }}{% if u['username'] == current_username %} <span class="badge success">you</span>{% endif %}</td>
+            <td>{{ u['full_name'] or '—' }}</td>
+            <td>{{ u['role'] }}</td>
+            <td>
+              <div class="code-cell">
+                {% if u['role'] == 'admin' %}
+                <span class="text-muted">All (admin)</span>
+                {% elif u_codes %}
+                {% for c in u_codes %}<span class="badge code">{{ c }}</span>{% endfor %}
+                {% else %}
+                <span class="text-muted">All (unrestricted)</span>
+                {% endif %}
+                {% if u['role'] != 'admin' %}
+                <button class="btn-link" type="button" data-modal-open="modal-codes-{{ u['id'] }}">
+                  {{ icon('edit', 12) }} edit
+                </button>
+                {% endif %}
+              </div>
+            </td>
+            <td class="mono">{{ u['created_at'] }}</td>
+            <td>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                <button class="btn btn-secondary btn-sm" type="button"
+                        data-modal-open="modal-reset-{{ u['id'] }}">Reset pwd</button>
+                {% if u['username'] != current_username %}
+                <form method="post" action="{{ url_for('delete_user', user_id=u['id']) }}" class="inline-form">
+                  <button class="btn btn-danger btn-sm" type="submit" data-confirm="Delete user '{{ u['username'] }}'? This cannot be undone.">Delete</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="text-muted mt-3">
+      Buyer accounts can log in and run the pipeline; only admins can manage users.
+      Allocating specific purchasing codes to a buyer restricts which codes they can
+      select on the Run page and which runs show on their dashboard. Leave a buyer's
+      codes blank for no restriction.
+    </p>
+  </div>
+</div>
+
+<!-- Add user modal -->
+<div class="modal-overlay {{ 'open' if open_modal == 'add-user' else '' }}" id="modal-add-user">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-add-user-title">
+    <div class="modal-header">
+      <h3 id="modal-add-user-title">{{ icon('user-plus', 16) }} Add user</h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Close">{{ icon('x', 16) }}</button>
+    </div>
+    <form method="post" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="add_user">
+      <div class="form-grid">
+        <div class="field">
+          <label for="nu_name">Full name</label>
+          <input type="text" id="nu_name" name="full_name" placeholder="Jane Buyer">
+        </div>
+        <div class="field">
+          <label for="nu_user">Username</label>
+          <input type="text" id="nu_user" name="username" required placeholder="jbuyer">
+        </div>
+        <div class="field">
+          <label for="nu_pass">Password</label>
+          <input type="password" id="nu_pass" name="password" required autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="nu_role">Role</label>
+          <select id="nu_role" name="role">
+            <option value="buyer">Buyer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="field mt-3">
+        <label>Allocated purchasing codes <span class="text-muted">(buyers only — leave blank for no restriction)</span></label>
+        {{ code_picker(purchasing_codes) }}
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
+        <button class="btn btn-primary" type="submit" data-confirm="Create this user account?">Create user</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Per-user edit-codes modals -->
+{% for u in users %}
+{% if u['role'] != 'admin' %}
+{% set u_codes = (u['allowed_codes'] or '').split(',') | select | list %}
+<div class="modal-overlay {{ 'open' if open_modal == 'codes-' ~ u['id']|string else '' }}" id="modal-codes-{{ u['id'] }}">
+  <div class="modal-card modal-card-sm" role="dialog" aria-modal="true" aria-labelledby="modal-codes-{{ u['id'] }}-title">
+    <div class="modal-header">
+      <h3 id="modal-codes-{{ u['id'] }}-title">Purchasing codes <span class="mono text-muted">· {{ u['username'] }}</span></h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Close">{{ icon('x', 16) }}</button>
+    </div>
+    <form method="post" action="{{ url_for('settings') }}">
+      <input type="hidden" name="action" value="update_codes">
+      <input type="hidden" name="user_id" value="{{ u['id'] }}">
+      <p class="text-muted mb-3">Leave everything unchecked for no restriction (can run any code).</p>
+      {{ code_picker(purchasing_codes, u_codes) }}
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
+        <button class="btn btn-primary" type="submit" data-confirm="Save purchasing codes for '{{ u['username'] }}'?">Save codes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- Per-user admin reset-password modals -->
+{% for u in users %}
+<div class="modal-overlay {{ 'open' if open_modal == 'reset-' ~ u['id']|string else '' }}" id="modal-reset-{{ u['id'] }}">
+  <div class="modal-card modal-card-sm" role="dialog" aria-modal="true" aria-labelledby="modal-reset-{{ u['id'] }}-title">
+    <div class="modal-header">
+      <h3 id="modal-reset-{{ u['id'] }}-title">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:.3rem"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Reset password <span class="mono text-muted">· {{ u['username'] }}</span>
+      </h3>
+      <button class="modal-close" type="button" data-modal-close aria-label="Close">{{ icon('x', 16) }}</button>
+    </div>
+    <form method="post" action="{{ url_for('admin_reset_password', user_id=u['id']) }}">
+      <p class="text-muted mb-3">Set a new password for <strong>{{ u['username'] }}</strong>. No current password needed.</p>
+      <div class="form-grid" style="grid-template-columns:1fr;">
+        <div class="field">
+          <label for="reset_pw_{{ u['id'] }}">New password</label>
+          <input type="password" id="reset_pw_{{ u['id'] }}" name="new_password"
+                 required autocomplete="new-password" minlength="8">
+          <span class="hint">At least 8 characters.</span>
+        </div>
+        <div class="field">
+          <label for="reset_pw2_{{ u['id'] }}">Confirm new password</label>
+          <input type="password" id="reset_pw2_{{ u['id'] }}" name="confirm_password"
+                 required autocomplete="new-password" minlength="8">
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" type="button" data-modal-close>Cancel</button>
+        <button class="btn btn-primary" type="submit"
+                data-confirm="Reset password for '{{ u['username'] }}'?">Reset password</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}
+

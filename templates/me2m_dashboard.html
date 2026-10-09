@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}ME2M Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+<div class="overview-header"><div><h2>ME2M overview</h2><p>Track workbook processing and open your report files.</p></div><a class="btn btn-primary btn-icon" href="{{ url_for('me2m_page') }}">{{ icon('play',14) }} New run</a></div>
+<form method="get" action="{{ url_for('dashboard') }}" class="filter-bar overview-filters">
+  <input type="hidden" name="process" value="me2m">
+  <div class="field"><label for="period">Date range</label><select id="period" name="period">{% for days in (7,14,30) %}<option value="{{ days }}" {{ 'selected' if f_period == days else '' }}>Last {{ days }} days</option>{% endfor %}<option value="0" {{ 'selected' if f_period==0 else '' }}>All time</option></select></div>
+  <div class="field"><label for="group">Purchasing group</label><select id="group" name="group"><option value="">All groups</option>{% for group in all_groups %}<option value="{{ group }}" {{ 'selected' if f_group==group else '' }}>{{ group }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="status">Run status</label><select id="status" name="status"><option value="">All statuses</option>{% for status in statuses %}<option value="{{ status }}" {{ 'selected' if f_status==status else '' }}>{{ status|capitalize }}</option>{% endfor %}</select></div>
+  <button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-secondary" href="{{ url_for('dashboard',process='me2m') }}">Reset</a>
+</form>
+<div class="metrics-grid">
+  <div class="metric"><span class="metric-label">Total runs</span><strong class="metric-value">{{ runs|length }}</strong><span class="metric-note">{{ n_running }} running now</span></div>
+  <div class="metric"><span class="metric-label">Success rate</span><strong class="metric-value">{{ success_rate }}<small>%</small></strong><span class="metric-note">{{ n_success }} completed successfully</span></div>
+  <div class="metric"><span class="metric-label">Rows processed</span><strong class="metric-value">{{ "{:,}".format(total_rows) }}</strong><span class="metric-note">Successful runs in this range</span></div>
+  <div class="metric"><span class="metric-label">Net order value</span><strong class="metric-value">{{ "{:,.2f}".format(total_value) }}</strong><span class="metric-note">Successful runs in this range</span></div>
+</div>
+{% include "_dashboard_charts.html" %}
+<p class="dashboard-note">Totals include each successful run, including repeat uploads.</p>
+<div class="card run-files-card"><div class="section-header"><div><h2>Run files</h2><p class="text-muted">Open a file for its Period and purchasing-group breakdowns.</p></div><a class="btn btn-secondary btn-sm" href="{{ url_for('me2m_history') }}">View all runs</a></div>{% include "_me2m_history.html" %}</div>
+{% endblock %}
+{% block scripts %}{% include "_dashboard_scripts.html" %}{% endblock %}

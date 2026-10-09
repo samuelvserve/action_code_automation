@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Run #{{ run['id'] }} · ME2M{% endblock %}
+{% block page_title %}ME2M report #{{ run['id'] }}{% endblock %}
+{% block content %}
+<div class="section-header mb-4">
+  <a class="btn btn-secondary btn-sm btn-icon" href="{{ url_for('me2m_history') }}">{{ icon('chevron-left', 14) }} Run files</a>
+  <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard', process='me2m') }}">ME2M statistics</a>
+</div>
+<div class="card progress-card" id="run-status" data-run-id="{{ run['id'] }}" data-status="{{ run['status'] }}" data-status-url="{{ url_for('me2m_status', run_id=run['id']) }}">
+  {% if run['status'] == 'running' %}
+  <div class="spinner" aria-hidden="true"></div>
+  <div class="status-big running">ME2M report is processing…</div>
+  <div class="current-step" id="current-step" role="status" aria-live="polite">{{ run['current_step'] or 'Preparing report' }}</div>
+  {% elif run['status'] == 'success' %}
+  <div class="status-big success actions-row justify-center">{{ icon('check-circle', 18) }} ME2M report completed</div>
+  {% elif run['status'] in ('cancelled', 'interrupted') %}
+  <div class="status-big cancelled">ME2M report {{ 'stopped' if run['status'] == 'cancelled' else 'interrupted' }}</div>
+  {% else %}
+  <div class="status-big failed">ME2M report failed</div>
+  {% endif %}
+  <p class="text-muted me2m-source">{{ run['source_file'] }} · Reporting date {{ run['report_date'] }}</p>
+  <p class="text-muted">Started {{ run['started_at'] }} by {{ run['triggered_by'] }}{% if run['finished_at'] %} · Finished {{ run['finished_at'] }}{% endif %}</p>
+  {% if run['error'] %}<div class="error-box" role="alert">{{ run['error'] }}</div>{% endif %}
+  <div class="actions-row justify-center mt-4">
+    {% if run['status'] == 'running' %}
+    <form method="post" action="{{ url_for('me2m_stop', run_id=run['id']) }}">
+      <button type="submit" class="btn btn-stop btn-icon">{{ icon('stop', 14) }} Stop report</button>
+    </form>
+    {% elif run['status'] == 'success' %}
+    <a class="btn btn-primary btn-icon" href="{{ url_for('me2m_download', run_id=run['id']) }}">{{ icon('download', 14) }} Download processed XLSX</a>
+    {% else %}
+    <a class="btn btn-primary" href="{{ url_for('me2m_page') }}">Start new report</a>
+    {% endif %}
+    {% if run['log_file'] %}<a class="btn btn-secondary" href="{{ url_for('me2m_log', run_id=run['id']) }}">View report log</a>{% endif %}
+  </div>
+</div>
+{% if run['status'] == 'success' %}
+<div class="stat-grid me2m-stats">
+  <div class="stat blue"><span class="label">Rows processed</span><span class="value">{{ "{:,}".format(total_rows) }}</span></div>
+  <div class="stat violet"><span class="label">Net order value</span><span class="value">{{ "{:,.2f}".format(total_value) }}</span></div>
+  <div class="stat amber"><span class="label">Purchasing groups</span><span class="value">{{ group_rows|length }}</span></div>
+  <div class="stat green"><span class="label">Duration</span><span class="value">{{ (run['duration_sec']|round|int) ~ 's' if run['duration_sec'] is not none else '—' }}</span></div>
+</div>
+{% include "_me2m_results.html" %}
+{% endif %}
+{% endblock %}

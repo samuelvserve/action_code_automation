@@ -1,0 +1,39 @@
+<div class="card">
+  <h2>Period breakdown <span class="sub">Net Order Value</span></h2>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th scope="col">Period</th><th scope="col" class="numeric">Rows</th><th scope="col" class="numeric">Net order value</th></tr></thead>
+      <tbody>
+        {% for category in categories %}
+        <tr>
+          <td>{{ 'Unclassified' if category == '(blank)' else category }}</td>
+          <td class="numeric">{{ "{:,}".format(summary_counts[category]) }}</td>
+          <td class="numeric">{{ "{:,.2f}".format(summary_values[category]) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Grand Total</th><td class="numeric">{{ "{:,}".format(total_rows) }}</td><td class="numeric">{{ "{:,.2f}".format(total_value) }}</td></tr></tfoot>
+    </table>
+  </div>
+</div>
+{% if group_rows %}
+<div class="card">
+  <h2>By purchasing group <span class="sub">Sum of Net Order Value</span></h2>
+  <div class="table-wrap">
+    <table class="data me2m-pivot">
+      <thead><tr><th scope="col">Group</th><th scope="col" class="numeric">Rows</th>{% for c in categories %}<th scope="col" class="numeric">{{ 'Unclassified' if c == '(blank)' else c }}</th>{% endfor %}<th scope="col" class="numeric">Grand Total</th></tr></thead>
+      <tbody>
+        {% for group, result in group_rows %}
+        <tr>
+          <th scope="row"><span class="badge code">{{ group }}</span></th>
+          <td class="numeric">{{ "{:,}".format(result['rows']) }}</td>
+          {% for c in categories %}<td class="numeric">{{ "{:,.2f}".format(result['values'][c]) }}</td>{% endfor %}
+          <td class="numeric">{{ "{:,.2f}".format(result['net_order_value']) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th scope="row">Grand Total</th><td class="numeric">{{ "{:,}".format(total_rows) }}</td>{% for c in categories %}<td class="numeric">{{ "{:,.2f}".format(summary_values[c]) }}</td>{% endfor %}<td class="numeric">{{ "{:,.2f}".format(total_value) }}</td></tr></tfoot>
+    </table>
+  </div>
+</div>
+{% endif %}

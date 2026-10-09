@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Run Pipeline · Action Code Dashboard{% endblock %}
+{% block page_title %}Run Pipeline{% endblock %}
+
+{% block content %}
+{% set running_runs = recent | selectattr('status', 'equalto', 'running') | list %}
+{% include "_live_status.html" %}
+
+<div class="card">
+  <form method="post" action="{{ url_for('run_page') }}" enctype="multipart/form-data">
+    <input type="hidden" name="run_type" value="Instant Run">
+
+    <div class="field mb-5">
+      <label>Purchasing codes <span class="text-muted">(select one or more — max 4)</span></label>
+      {% if allowed_codes is not none %}
+      <span class="hint">You're allocated: {{ allowed_codes|join(', ') }}</span>
+      {% endif %}
+      {% if purchasing_codes %}
+      {% set default_code = 'D13' if 'D13' in purchasing_codes else purchasing_codes[0] %}
+      <div class="code-picker">
+        {% for code in purchasing_codes %}
+        <label class="code-chip">
+          <input type="checkbox" name="purchasing_codes" value="{{ code }}" {{ 'checked' if code == default_code else '' }}>
+          {{ code }}
+        </label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <p>You don't have any purchasing codes allocated yet. Ask an admin to allocate codes to your account in Settings.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="field mb-5">
+      <label>Source inputs</label>
+      <div class="code-picker">
+        <label class="code-chip">
+          <input type="radio" name="source_mode" value="folder" checked>
+          Use inputs folder
+        </label>
+        <label class="code-chip">
+          <input type="radio" name="source_mode" value="upload">
+          Upload files for this run
+        </label>
+      </div>
+      <span class="hint">
+        By default the pipeline reads the six GAINS/SAP files already placed in the server's
+        <code>inputs/</code> folder. Choose "Upload files for this run" to supply them yourself instead —
+        useful for a one-off run without touching that folder.
+      </span>
+
+      <div class="upload-body" id="upload-body" hidden>
+        <div class="form-grid mt-3">
+          {% for key, label in source_file_labels.items() %}
+          <div class="field">
+            <label for="src_{{ key }}">{{ label }}</label>
+            <input type="file" id="src_{{ key }}" name="src_{{ key }}" accept=".xlsx">
+          </div>
+          {% endfor %}
+        </div>
+        <span class="hint mt-2">All six files are required and must be .xlsx. Each is matched to its
+          role by the field it's uploaded into, not by filename.</span>
+      </div>
+    </div>
+
+    <div class="field mb-4">
+      <span class="hint">
+        Runs execute in the background (~2–4 min). The Master File is saved with a timestamped
+        name, and the result is emailed if notifications are enabled in
+        <a href="{{ url_for('settings') }}">Settings</a>.
+      </span>
+    </div>
+
+    <details class="advanced-toggle">
+      <summary class="advanced-summary">
+        <span class="advanced-icon">{{ icon('chevron-right', 14) }}</span> Advanced options
+        <span class="advanced-hint">timeout, notifications, debug</span>
+      </summary>
+      <div class="advanced-body">
+        <div class="form-grid">
+          <div class="field">
+            <label for="timeout">Timeout (seconds)</label>
+            <input type="number" id="timeout" name="timeout" value="300" min="60" max="600">
+            <span class="hint">Max time before the run is cancelled (60–600s)</span>
+          </div>
+          <div class="field">
+            <label class="check">
+              <input type="checkbox" name="notify_email" value="1" checked>
+              Send email on completion
+            </label>
+            <span class="hint">Uses the address in Settings → Notifications</span>
+          </div>
+          <div class="field">
+            <label class="check">
+              <input type="checkbox" name="debug_log" value="1">
+              Verbose debug logging
+            </label>
+            <span class="hint">Extra detail in the run log (slower)</span>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <button class="btn btn-primary btn-icon mt-4" type="submit">{{ icon('play', 14) }} Start run</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Recent runs <span class="sub">last 10</span></h2>
+  {% if recent %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr><th>#</th><th>Codes</th><th>Source</th><th>Status</th><th>Rows</th><th>Actions</th><th>Duration</th><th>When</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in recent %}
+        <tr>
+          <td><a href="{{ url_for('run_detail', run_id=r['id']) }}">#{{ r['id'] }}</a></td>
+          <td>
+            {% for c in r['purchasing_codes'].split(',') %}
+            <span class="badge code">{{ c }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ 'Uploaded' if r['source_mode'] == 'upload' else 'Folder' }}</td>
+          <td><span class="badge {{ r['status'] }}">{{ r['status'] }}</span></td>
+          <td>{{ r['total_rows'] if r['total_rows'] is not none else '—' }}</td>
+          <td>{{ r['action_items'] if r['action_items'] is not none else '—' }}</td>
+          <td>{% if r['duration_sec'] is not none %}{{ r['duration_sec']|round|int }}s{% else %}—{% endif %}</td>
+          <td class="mono">{{ r['started_at'] }}</td>
+          <td>
+            {% if r['status'] == 'running' %}
+            <form method="post" action="{{ url_for('stop_run', run_id=r['id']) }}" class="inline-form">
+              <button class="btn btn-stop btn-sm" type="submit">Stop</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8" fill="currentColor" stroke="none"/></svg>
+    </div>
+    <p>No runs yet — start your first run above.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

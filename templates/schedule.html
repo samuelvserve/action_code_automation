@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Schedule · Action Code Dashboard{% endblock %}
+{% block page_title %}Schedule Runs{% endblock %}
+
+{% block content %}
+<div class="overview-header"><div><h2>Action Code schedules</h2><p>Run the Action Code pipeline automatically from your input folder.</p></div><a class="btn btn-secondary" href="{{ url_for('dashboard',process='acr') }}">Dashboard</a></div>
+<p class="schedule-info">Times use Asia/Calcutta. Keep the application running for schedules to start.</p>
+<div class="card">
+  <h2>New schedule <span class="sub">runs automatically at the set time</span></h2>
+  <form method="post" action="{{ url_for('schedule_page') }}">
+    <input type="hidden" name="run_type" value="Instant Run">
+
+    <div class="form-grid mb-4">
+      <div class="field">
+        <label for="name">Schedule name</label>
+        <input type="text" id="name" name="name" placeholder="e.g. Daily morning run">
+      </div>
+      <div class="field">
+        <label for="run_time">Run time (HH:MM)</label>
+        <input type="text" id="run_time" name="run_time" placeholder="07:00" value="07:00" required>
+      </div>
+    </div>
+
+    <div class="field mb-4">
+      <label>Days of week <span class="text-muted">(leave all unchecked = every day)</span></label>
+      <div class="code-picker">
+        {% for value, label in weekdays %}
+        <label class="code-chip">
+          <input type="checkbox" name="days" value="{{ value }}"> {{ label }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="field mb-4">
+      <label>Purchasing codes <span class="text-muted">(one or more — max 4)</span></label>
+      <div class="code-picker">
+        {% for code in purchasing_codes %}
+        <label class="code-chip">
+          <input type="checkbox" name="purchasing_codes" value="{{ code }}"> {{ code }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <label class="check mb-4">
+      <input type="checkbox" name="enabled" checked> Active (enable this schedule)
+    </label>
+
+    <button class="btn btn-primary" type="submit">+ Create schedule</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Existing schedules <span class="sub">checked every ~20s</span></h2>
+  {% if schedules %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Name</th><th>Codes</th><th>Time</th><th>Days</th>
+          <th>Status</th><th>Next run</th><th>Last run</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in schedules %}
+        <tr>
+          <td><strong>{{ s['name'] }}</strong></td>
+          <td>
+            {% for c in s['purchasing_codes'].split(',') %}
+            <span class="badge code">{{ c }}</span>
+            {% endfor %}
+          </td>
+          <td class="mono">{{ s['run_time'] }}</td>
+          <td>
+            {% if s['days'] %}
+              {% for d in s['days'].split(',') %}
+                <span class="badge code">{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d|int] }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="badge code">Every day</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if s['enabled'] %}
+              <span class="badge running">active</span>
+            {% else %}
+              <span class="badge interrupted">paused</span>
+            {% endif %}
+          </td>
+          <td class="mono">{{ s['next_run'].strftime('%Y-%m-%d %H:%M') if s['next_run'] else '—' }}</td>
+          <td class="mono">{{ s['last_run_at'] or '—' }}</td>
+          <td class="nowrap">
+            <span class="actions-row gap-2">
+              <form method="post" action="{{ url_for('toggle_schedule', sched_id=s['id']) }}" class="inline-form">
+                <button class="btn btn-secondary btn-sm" type="submit">{{ 'Pause' if s['enabled'] else 'Enable' }}</button>
+              </form>
+              <form method="post" action="{{ url_for('delete_schedule', sched_id=s['id']) }}" class="inline-form">
+                <button class="btn btn-danger btn-sm" type="submit" data-confirm="Delete schedule '{{ s['name'] }}'?">Delete</button>
+              </form>
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
+    <p>No schedules yet. Create one above — it will run by itself at the chosen time.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

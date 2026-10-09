@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}ME2M #{{ run['id'] }} · Report log{% endblock %}
+{% block page_title %}ME2M #{{ run['id'] }} · Report log{% endblock %}
+{% block content %}
+<div class="card p-0 overflow-hidden"><pre class="log-view">{{ content }}</pre></div>
+<a class="btn btn-secondary btn-sm btn-icon" href="{{ url_for('me2m_detail', run_id=run['id']) }}">{{ icon('chevron-left', 14) }} Back to ME2M report</a>
+{% endblock %}

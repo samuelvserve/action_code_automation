@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}History & Files · Action Code Dashboard{% endblock %}
+{% block page_title %}History &amp; Files{% endblock %}
+
+{% block content %}
+<form method="get" action="{{ url_for('history') }}" class="filter-bar">
+  <div class="field">
+    <label for="code">Purchasing code</label>
+    <select id="code" name="code">
+      <option value="">All</option>
+      {% for c in all_codes %}
+      <option value="{{ c }}" {{ 'selected' if f_code == c else '' }}>{{ c }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="field">
+    <label for="status">Status</label>
+    <select id="status" name="status">
+      <option value="">All</option>
+      <option value="success" {{ 'selected' if f_status == 'success' else '' }}>Success</option>
+      <option value="failed" {{ 'selected' if f_status == 'failed' else '' }}>Failed</option>
+      <option value="running" {{ 'selected' if f_status == 'running' else '' }}>Running</option>
+      <option value="cancelled" {{ 'selected' if f_status == 'cancelled' else '' }}>Stopped</option>
+      <option value="interrupted" {{ 'selected' if f_status == 'interrupted' else '' }}>Interrupted</option>
+    </select>
+  </div>
+  <button class="btn btn-secondary" type="submit">Apply</button>
+  <a class="btn btn-secondary" href="{{ url_for('history') }}">Reset</a>
+</form>
+
+<div class="card">
+  <h2>Runs <span class="sub">{{ runs|length }} shown</span></h2>
+  {% if runs %}
+  <div class="table-wrap">
+    <table class="data">
+      <thead>
+        <tr>
+          <th>#</th><th>Codes</th><th>Status</th><th>Rows</th>
+          <th>Actions</th><th>Duration</th><th>Triggered by</th><th>Started</th><th>Files</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in runs %}
+        <tr>
+          <td><a href="{{ url_for('run_detail', run_id=r['id']) }}">#{{ r['id'] }}</a></td>
+          <td>
+            {% for c in r['purchasing_codes'].split(',') %}
+            <span class="badge code">{{ c }}</span>
+            {% endfor %}
+          </td>
+          <td><span class="badge {{ r['status'] }}">{{ r['status'] }}</span></td>
+          <td>{{ r['total_rows'] if r['total_rows'] is not none else '—' }}</td>
+          <td>{{ r['action_items'] if r['action_items'] is not none else '—' }}</td>
+          <td>{% if r['duration_sec'] is not none %}{{ r['duration_sec']|round|int }}s{% else %}—{% endif %}</td>
+          <td>{{ r['triggered_by'] or '—' }}</td>
+          <td class="mono">{{ r['started_at'] }}</td>
+          <td>
+            <span class="actions-row gap-2">
+              {% if r['output_file'] %}
+              <a class="icon-link" href="{{ url_for('download', filename=r['output_file']) }}" title="Download Excel">{{ icon('download', 14) }} xlsx</a>
+              {% endif %}
+              {% if r['log_file'] %}
+              <a class="icon-link" href="{{ url_for('view_log', filename=r['log_file']) }}" title="View log">{{ icon('file-text', 14) }} log</a>
+              {% endif %}
+              {% if r['status'] == 'running' %}
+              <form method="post" action="{{ url_for('stop_run', run_id=r['id']) }}" class="inline-form">
+                <button class="btn btn-stop btn-sm" type="submit">Stop</button>
+              </form>
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    </div>
+    <p>No runs match these filters.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h2>Weekly stats <span class="sub">ISO week</span></h2>
+    {% if weekly_rows %}
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr><th>Week</th><th>Runs</th><th>Success</th><th>Failed</th><th>Stopped</th><th>Rows</th><th>Action items</th></tr>
+        </thead>
+        <tbody>
+          {% for wk, w in weekly_rows %}
+          <tr>
+            <td class="mono">{{ wk }}</td>
+            <td>{{ w['runs'] }}</td>
+            <td class="text-success">{{ w['success'] }}</td>
+            <td class="text-danger">{{ w['failed'] }}</td>
+            <td class="text-warning">{{ w['other'] }}</td>
+            <td>{{ "{:,}".format(w['rows']) }}</td>
+            <td><strong>{{ "{:,}".format(w['action_items']) }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <p>No runs yet.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Monthly run files <span class="sub">Excel outputs by month</span></h2>
+    {% if monthly_rows %}
+      {% for month, month_runs in monthly_rows %}
+      <h3 class="subhead">{{ month }}</h3>
+      {% for r in month_runs %}
+      <div class="file-row">
+        <div>
+          <div class="file-name">{{ r['output_file'] }}</div>
+          <div class="file-meta">Run #{{ r['id'] }} · {{ r['total_rows'] }} rows · {{ r['action_items'] }} action items</div>
+        </div>
+        <a class="btn btn-secondary btn-sm" href="{{ url_for('download', filename=r['output_file']) }}">Download</a>
+      </div>
+      {% endfor %}
+      {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      </div>
+      <p>No output files yet. Completed runs appear here grouped by month.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

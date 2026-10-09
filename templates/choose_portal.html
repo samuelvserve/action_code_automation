@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Choose portal · Lawson Automation</title><link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}"></head>
+<body class="portal-choice-page">
+  {% from "_icons.html" import icon %}
+  <div class="portal-choice-background" aria-hidden="true"><div class="portal-workspace-brand"><span class="brand-mark">L</span><strong>Lawson Automation</strong></div><div class="workspace-ghost"><div></div><div></div><div></div></div></div>
+  <dialog open id="portal-choice-dialog" class="portal-choice-dialog" aria-labelledby="portal-choice-title" aria-describedby="portal-choice-description">
+    <div class="portal-dialog-header"><div class="portal-dialog-icon">{{ icon('grid',24) }}</div><span>{{ user['full_name'] or user['username'] }}</span></div>
+    <h1 id="portal-choice-title">Choose your portal</h1><p id="portal-choice-description">Select the process you want to work with.</p>
+    {% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="flash flash-{{ category }}" role="status">{{ message }}</div>{% endfor %}{% endwith %}
+    <form method="post" action="{{ url_for('choose_portal') }}">
+      <fieldset class="portal-options"><legend class="sr-only">Portal</legend>
+        <label class="portal-option"><input type="radio" name="portal" value="acr" {{ 'checked' if selected=='acr' else '' }} required><span class="portal-option-mark">AC</span><span class="portal-option-copy"><strong>Action Code</strong><span>Procurement actions and pipeline runs</span></span></label>
+        <label class="portal-option"><input type="radio" name="portal" value="me2m" {{ 'checked' if selected=='me2m' else '' }} required><span class="portal-option-mark me2m">M2</span><span class="portal-option-copy"><strong>ME2M</strong><span>Workbook processing and purchasing reports</span></span></label>
+      </fieldset>
+      <p class="portal-choice-note">Each portal has its own Dashboard, Schedule and Run files.</p>
+      <button class="btn btn-primary portal-continue" type="submit">Continue to portal {{ icon('arrow-right',17) }}</button>
+    </form>
+    <div class="portal-dialog-footer">{% if session.get('active_portal') %}<a href="{{ url_for('dashboard',process=session['active_portal']) }}">Back to dashboard</a>{% endif %}<a href="{{ url_for('logout') }}">Sign out</a></div>
+  </dialog>
+  <script src="{{ url_for('static',filename='app.js') }}"></script>
+</body>
+</html>

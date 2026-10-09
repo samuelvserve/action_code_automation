@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ filename }} · Logs{% endblock %}
+{% block page_title %}Log: {{ filename }}{% endblock %}
+
+{% block content %}
+<div class="card p-0 overflow-hidden">
+  <pre class="log-view">{{ content }}</pre>
+</div>
+<div class="mt-3">
+  <a class="btn btn-secondary btn-sm btn-icon" href="{{ url_for('logs') }}">{{ icon('chevron-left', 14) }} Back to logs</a>
+</div>
+{% endblock %}

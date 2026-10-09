@@ -1,0 +1,44 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Runtime data (NOT deployed — lives in GCS bucket)
+data/
+inputs/
+outputs/
+logs/
+me2m/
+
+# Local dev / test artifacts
+*.db
+*.sqlite
+data_v1.zip
+inputs/Inputs.zip
+
+# IDE / OS
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# Secrets / local config
+.env
+*.env
+data/secret_key
+
+# Playwright / test
+scratch/
+audit.py

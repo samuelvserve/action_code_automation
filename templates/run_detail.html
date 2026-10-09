@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Run #{{ run['id'] }} · Action Code Dashboard{% endblock %}
+{% block page_title %}Run #{{ run['id'] }}{% endblock %}
+
+{% block content %}
+<div class="section-header mb-4"><a class="btn btn-secondary btn-sm btn-icon" href="{{ url_for('history') }}">{{ icon('chevron-left',14) }} Run files</a><a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard',process='acr') }}">Dashboard</a></div>
+<div class="card progress-card" id="run-status" data-run-id="{{ run['id'] }}" data-status="{{ run['status'] }}">
+  {% if run['status'] == 'running' %}
+    <div class="spinner"></div>
+    <div class="status-big running">Pipeline is running…</div>
+    <div class="current-step" id="current-step">{{ run['current_step'] or '' }}</div>
+    <p class="text-muted">Started {{ run['started_at'] }} by {{ run['triggered_by'] }}. This page refreshes automatically.</p>
+    <p class="text-muted">Codes:
+      {% for c in run['purchasing_codes'].split(',') %}<span class="badge code">{{ c }}</span>{% endfor %}
+    </p>
+    <p class="text-muted">Source: {{ 'files uploaded for this run' if run['source_mode'] == 'upload' else 'inputs folder' }}</p>
+    <form method="post" action="{{ url_for('stop_run', run_id=run['id']) }}" class="mt-4">
+      <button class="btn btn-stop btn-icon" type="submit" data-confirm="Stop run #{{ run['id'] }}? It will halt at the next pipeline step.">{{ icon('stop', 14) }} Stop run</button>
+    </form>
+  {% elif run['status'] == 'cancelled' or run['status'] == 'interrupted' %}
+    <div class="status-big cancelled actions-row justify-center">{{ icon('stop', 18) }} Run {{ 'stopped' if run['status'] == 'cancelled' else 'interrupted' }}</div>
+    <p class="text-muted">Started {{ run['started_at'] }} · finished {{ run['finished_at'] }}</p>
+    {% if run['error'] %}<div class="error-box">{{ run['error'] }}</div>{% endif %}
+    <div class="actions-row justify-center mt-4">
+      {% if run['log_file'] %}
+      <a class="btn btn-secondary" href="{{ url_for('view_log', filename=run['log_file']) }}">View run log</a>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('run_page') }}">Start new run</a>
+    </div>
+  {% elif run['status'] == 'success' %}
+    <div class="status-big success actions-row justify-center">{{ icon('check-circle', 18) }} Run completed successfully</div>
+    <p class="text-muted">Started {{ run['started_at'] }} · finished {{ run['finished_at'] }}</p>
+    <div class="stat-grid mt-4 mb-2">
+      <div class="stat blue"><span class="label">Rows</span><span class="value">{{ "{:,}".format(run['total_rows']) }}</span></div>
+      <div class="stat amber"><span class="label">Action items</span><span class="value">{{ "{:,}".format(run['action_items']) }}</span></div>
+      <div class="stat green"><span class="label">Duration</span><span class="value">{{ (run['duration_sec']|round|int) ~ 's' if run['duration_sec'] is not none else '—' }}</span></div>
+    </div>
+    <div class="actions-row justify-center mt-4">
+      <a class="btn btn-primary btn-icon" href="{{ url_for('download', filename=run['output_file']) }}">{{ icon('download', 14) }} Download Master File</a>
+      {% if run['log_file'] %}
+      <a class="btn btn-secondary" href="{{ url_for('view_log', filename=run['log_file']) }}">View run log</a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="status-big failed actions-row justify-center">{{ icon('x-circle', 18) }} Run failed</div>
+    <p class="text-muted">Started {{ run['started_at'] }} · finished {{ run['finished_at'] }}</p>
+    {% if run['error'] %}<div class="error-box">{{ run['error'] }}</div>{% endif %}
+    <div class="actions-row justify-center mt-4">
+      {% if run['log_file'] %}
+      <a class="btn btn-secondary" href="{{ url_for('view_log', filename=run['log_file']) }}">View run log</a>
+      {% endif %}
+      <a class="btn btn-primary" href="{{ url_for('run_page') }}">Retry</a>
+    </div>
+  {% endif %}
+</div>
+{% if run['status']=='success' and code_rows %}
+<div class="card"><h2>By purchasing code</h2><div class="table-wrap"><table class="data"><thead><tr><th scope="col">Code</th><th scope="col" class="numeric">Rows</th><th scope="col" class="numeric">Action items</th></tr></thead><tbody>{% for code,stats in code_rows %}<tr><th scope="row">{{ code }}</th><td class="numeric">{{ "{:,}".format(stats.get('rows',0)) }}</td><td class="numeric">{{ "{:,}".format(stats.get('action_items',0)) }}</td></tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+{% endblock %}

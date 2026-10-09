@@ -1,0 +1,26 @@
+{% if running_runs %}
+{% set run = running_runs[0] %}
+<div class="card live-card" id="live-status" data-run-id="{{ run['id'] }}" data-started="{{ run['started_at'] }}">
+  <h2>Live run status <span class="badge running">running</span></h2>
+  <div class="live-body">
+    <div class="spinner spinner-sm"></div>
+    <div class="live-main">
+      <div class="live-title">Run #{{ run['id'] }} ·
+        {% for c in run['purchasing_codes'].split(',') %}<span class="badge code">{{ c }}</span>{% endfor %}
+      </div>
+      <div class="current-step" id="live-step">{{ run['current_step'] or 'Starting pipeline...' }}</div>
+      <div class="live-meta">Started {{ run['started_at'] }} · elapsed <span id="live-elapsed">0:00</span></div>
+    </div>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('run_detail', run_id=run['id']) }}">Open run page →</a>
+  </div>
+  <div class="live-steps">
+    <div class="live-step" data-step-key="Step 1-2"><span class="dot"></span>Load &amp; clean GAINS data, build Master File</div>
+    <div class="live-step" data-step-key="Step 3"><span class="dot"></span>Enrich with Date of Supply (Ord Mat'l, Vendor)</div>
+    <div class="live-step" data-step-key="Step 3b"><span class="dot"></span>Enrich with Total Demand pivot</div>
+    <div class="live-step" data-step-key="Step 4-5"><span class="dot"></span>Merge SAP MB52 Fert / Raw on-hand</div>
+    <div class="live-step" data-step-key="Step 6"><span class="dot"></span>Merge SAP ZEXP current on-order</div>
+    <div class="live-step" data-step-key="Step 6b"><span class="dot"></span>Compute derived columns (ADCR, DOS OH/OO)</div>
+    <div class="live-step" data-step-key="Step 7"><span class="dot"></span>Write formatted Master File</div>
+  </div>
+</div>
+{% endif %}

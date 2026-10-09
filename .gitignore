@@ -1,0 +1,58 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Data & database files (sensitive / persistent runtime data)
+data/
+*.db
+*.sqlite3
+inputs/_manual_uploads/
+inputs/*.xlsx
+inputs/*.zip
+outputs/
+logs/
+me2m/uploads/
+me2m/outputs/
+me2m/logs/
+*.log
+
+# Sensitive secrets
+data/secret_key
+.env
+*.env
+
+# Playwright & test artifacts
+scratch/
+.pytest_cache/
+.freebuff/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+data_v1.zip

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}New run · ME2M{% endblock %}
+{% block page_title %}New run{% endblock %}
+{% block content %}
+<div class="overview-header"><div><h2>Process an ME2M workbook</h2><p>Upload your export and create a new report.</p></div><a class="btn btn-secondary" href="{{ url_for('me2m_schedule') }}">Schedule a run</a></div>
+<div class="card me2m-upload-card">
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('me2m_page') }}" class="me2m-upload-form">
+    <div class="form-grid mb-4">
+      <div class="field"><label for="workbook">Source workbook</label><input id="workbook" name="workbook" type="file" accept=".xlsx" required aria-describedby="workbook-help"><span class="hint" id="workbook-help">.xlsx, up to 50 MB. Processing uses the first worksheet.</span></div>
+      <div class="field"><label for="report_date">Reporting date</label><input id="report_date" name="report_date" type="date" value="{{ report_date }}" required aria-describedby="date-help"><span class="hint" id="date-help">Choose the date this report should use.</span></div>
+    </div>
+    {% if allowed_codes is not none %}<p class="text-muted">Your allocated purchasing groups: {{ allowed_codes|join(', ') }}</p>{% endif %}
+    <div class="workbook-output"><div>{{ icon('file-text',22) }}</div><p>Your report contains <strong>Main File</strong> in the first sheet and <strong>Pivot Summary</strong> in the second sheet. Numeric text converts to Excel numbers.</p></div>
+    <button class="btn btn-primary btn-icon" type="submit">{{ icon('play',14) }} Process ME2M workbook</button>
+  </form>
+</div>
+<div class="card run-files-card"><div class="section-header"><h2>Recent run files</h2><a href="{{ url_for('me2m_history') }}">View all runs</a></div>{% include "_me2m_history.html" %}</div>
+{% endblock %}

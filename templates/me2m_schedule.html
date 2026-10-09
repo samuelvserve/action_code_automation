@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Schedule · ME2M{% endblock %}
+{% block page_title %}Schedule{% endblock %}
+{% block content %}
+<div class="overview-header"><div><h2>ME2M schedules</h2><p>Automatically process the latest workbook in your input folder.</p></div><a class="btn btn-secondary" href="{{ url_for('dashboard',process='me2m') }}">Dashboard</a></div>
+<p class="schedule-info">Times use Asia/Calcutta. Keep the application running for schedules to start.</p>
+<div class="card">
+  <h2>New schedule</h2>
+  <form method="post" action="{{ url_for('me2m_schedule') }}">
+    <div class="form-grid mb-4"><div class="field"><label for="name">Schedule name</label><input id="name" type="text" name="name" value="{{ form.get('name','') }}" placeholder="e.g. Morning ME2M report"></div><div class="field"><label for="run_time">Run time</label><input id="run_time" name="run_time" type="time" value="{{ form.get('run_time','07:00') }}" required></div></div>
+    <div class="field mb-4"><label for="input_folder">Input folder</label><input id="input_folder" name="input_folder" type="text" value="{{ form.get('input_folder',default_folder) }}" required aria-describedby="folder-help"><span class="hint" id="folder-help">Use a full folder path on this computer. Each run reads the most recently modified .xlsx file. Temporary files and names containing _Processed are skipped.</span></div>
+    <fieldset class="schedule-days mb-4"><legend>Days of the week <span class="text-muted">(none selected means every day)</span></legend><div class="code-picker">{% for value,label in weekdays %}<label class="code-chip"><input type="checkbox" name="days" value="{{ value }}" {{ 'checked' if value in form.getlist('days') else '' }}> {{ label }}</label>{% endfor %}</div></fieldset>
+    <div class="schedule-form-footer"><label class="check"><input name="enabled" type="checkbox" {{ 'checked' if request.method=='GET' or form.get('enabled')=='on' else '' }}> Enable schedule</label><button class="btn btn-primary btn-icon" type="submit">{{ icon('calendar',16) }} Create schedule</button></div>
+    <p class="schedule-report-date">The reporting date is the date the scheduled run starts.</p>
+  </form>
+</div>
+<div class="card"><h2>Saved schedules <span class="chart-range">{{ schedules|length }} schedules</span></h2>
+  {% if schedules %}<div class="schedule-list">{% for s in schedules %}<article class="schedule-item"><div class="schedule-item-heading"><div><h3>{{ s['name'] }}</h3><p class="schedule-time">{{ s['run_time'] }} <span>Asia/Calcutta</span> &nbsp; {% if s['days'] %}{% for d in s['days'].split(',') %}{{ ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d|int] }}{{ ', ' if not loop.last else '' }}{% endfor %}{% else %}Every day{% endif %}</p></div><span class="badge {{ 'running' if s['enabled'] else 'interrupted' }}">{{ 'Active' if s['enabled'] else 'Paused' }}</span></div><p class="schedule-folder">{{ icon('file-text',15) }} {{ s['input_folder'] }}</p><div class="schedule-meta"><span>Next run <strong>{{ s['next_run'].strftime('%d %b %Y, %H:%M') if s['next_run'] else 'Paused' }}</strong></span><span>Last attempt <strong>{{ s['last_run_at'] or 'Not run yet' }}</strong></span>{% if s['last_run_id'] %}<a href="{{ url_for('me2m_detail',run_id=s['last_run_id']) }}">View run #{{ s['last_run_id'] }}{% if s.get('last_status') %} ({{ s['last_status'] }}){% endif %}</a>{% endif %}</div>{% if s['last_error'] %}<div class="schedule-error" role="status">{{ s['last_error'] }}</div>{% endif %}<div class="actions-row mt-3"><form method="post" action="{{ url_for('me2m_toggle_schedule',sched_id=s['id']) }}"><button class="btn btn-secondary btn-sm" type="submit">{{ 'Pause' if s['enabled'] else 'Enable' }}</button></form><form method="post" action="{{ url_for('me2m_delete_schedule',sched_id=s['id']) }}"><button class="btn btn-danger btn-sm" type="submit" data-confirm="Delete this ME2M schedule?">Delete</button></form><span class="schedule-owner">Created by {{ s['created_by'] }}</span></div></article>{% endfor %}</div>
+  {% else %}<div class="empty-state"><p>No ME2M schedules yet. Add a folder and run time above to create one.</p></div>{% endif %}
+</div>
+{% endblock %}

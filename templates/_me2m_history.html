@@ -1,0 +1,34 @@
+{% from "_icons.html" import icon %}
+{% if recent %}
+<div class="table-wrap">
+  <table class="data me2m-history">
+    <thead><tr><th scope="col">Run</th><th scope="col">File / source</th><th scope="col">Reporting date</th><th scope="col">Status</th><th scope="col" class="numeric">Rows</th><th scope="col">Open</th></tr></thead>
+    <tbody>
+      {% for r in recent %}
+      <tr {% if r['status'] == 'running' %}data-me2m-status-url="{{ url_for('me2m_status', run_id=r['id']) }}"{% endif %}>
+        <td><a href="{{ url_for('me2m_detail', run_id=r['id']) }}">#{{ r['id'] }}</a></td>
+        <td class="source-cell"><a class="file-detail-link" href="{{ url_for('me2m_detail', run_id=r['id']) }}">{{ icon('file-text',17) }} <span>{{ r['output_file'] or r['source_file'] }}</span></a><span class="me2m-meta">{{ r['source_file'] }} · {{ r['started_at'] }}{% if r.get('schedule_id') %} · Scheduled{% endif %}</span></td>
+        <td class="mono">{{ r['report_date'] }}</td>
+        <td><span class="badge {{ r['status'] }}">{{ r['status'] }}</span></td>
+        <td class="numeric">{{ "{:,}".format(r['total_rows']) if r['total_rows'] is not none else '—' }}</td>
+        <td>
+          <div class="actions-row">
+            <a href="{{ url_for('me2m_detail', run_id=r['id']) }}" aria-label="View ME2M run {{ r['id'] }} details">Details</a>
+            {% if r['status'] == 'success' and r['output_file'] %}
+            <a class="btn btn-secondary btn-sm btn-icon" href="{{ url_for('me2m_download', run_id=r['id']) }}" aria-label="Download ME2M report {{ r['id'] }}">{{ icon('download', 14) }} XLSX</a>
+            {% endif %}
+            {% if r['log_file'] %}<a href="{{ url_for('me2m_log', run_id=r['id']) }}" aria-label="View log for ME2M report {{ r['id'] }}">Log</a>{% endif %}
+            {% if r['status'] == 'running' %}<a href="{{ url_for('me2m_detail', run_id=r['id']) }}">View progress</a>{% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">{{ icon('file-text', 32) }}</div>
+  <p>No ME2M reports here yet.<br>Upload a workbook to start processing.</p>
+</div>
+{% endif %}

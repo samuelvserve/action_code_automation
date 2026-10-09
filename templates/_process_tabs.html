@@ -1,0 +1,8 @@
+<nav class="process-tabs" aria-label="{{ 'Dashboard processes' if tabs_context == 'dashboard' else 'Automation processes' }}">
+  <a href="{{ url_for('dashboard') if tabs_context == 'dashboard' else url_for('run_page') }}"
+     class="{{ 'selected' if active_process == 'acr' else '' }}"
+     {% if active_process == 'acr' %}aria-current="page"{% endif %}>ACR Automation</a>
+  <a href="{{ url_for('dashboard', process='me2m') if tabs_context == 'dashboard' else url_for('me2m_page') }}"
+     class="{{ 'selected' if active_process == 'me2m' else '' }}"
+     {% if active_process == 'me2m' %}aria-current="page"{% endif %}>ME2M Processing</a>
+</nav>
